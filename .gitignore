@@ -8,3 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
+.env
+
+# AI models
+*.pt
+
+# IDE
+.vscode/
+.idea/

@@ -6,6 +6,7 @@ from fastapi import FastAPI, File, UploadFile, Form
 from pydantic import BaseModel
 from PIL import Image
 from dotenv import load_dotenv
+import torch
 from ultralytics.models.sam import SAM2DynamicInteractivePredictor
 
 load_dotenv()
@@ -50,8 +51,8 @@ async def predict(
     boxes_list = json.loads(boxes)
     num_boxes = len(boxes_list)
     
-    obj_ids = list(range(1, num_boxes + 1))
-    max_obj_num = num_boxes + 1
+    obj_ids = list(range(num_boxes))
+    max_obj_num = num_boxes
     
     predictor.max_obj_num = max_obj_num
     
@@ -59,14 +60,16 @@ async def predict(
         source=current_frame_np,
         bboxes=boxes_list,
         obj_ids=obj_ids,
-        update_memory=False
+        update_memory=True
     )
     
     results = predictor(source=next_frame_np)
-    
+    predictor.reset_image()
+    torch.cuda.empty_cache()
+
     output_boxes = []
     for obj_id in obj_ids:
-        bbox = results[0][obj_id].xyxy
+        bbox = results[0][obj_id].boxes.xyxy
         bbox_array = bbox.tolist() if hasattr(bbox, 'tolist') else list(bbox)
         if isinstance(bbox_array, list) and len(bbox_array) == 1:
             output_boxes.append(bbox_array[0])
